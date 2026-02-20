@@ -2,7 +2,7 @@ import streamlit as st
 import plotly.graph_objects as go
 from agents.storage_agent import init_db, save_memo, load_memos
 from agents.stock_agent import init_stock_db, add_stock, load_stocks, delete_stock
-from agents.research_agent import get_stock_data, get_company_overview, get_chart_data, get_kr_stock_data
+from agents.research_agent import get_stock_data, get_company_overview, get_chart_data, get_kr_stock_data, search_ticker
 # 스타일 설정
 st.markdown("""
     <style>
@@ -58,21 +58,26 @@ tab1, tab2, tab3 = st.tabs(["관심 종목 관리", "종목 분석", "메모 관
 with tab1:
     st.subheader("📋 관심 종목 추가")
     
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        name = st.text_input("종목명", placeholder="예) 삼성전자")
-    with col2:
-        ticker = st.text_input("티커", placeholder="예) 005930 / AAPL")
-    with col3:
-        market = st.selectbox("시장", ["국내", "미국"])
+    keyword = st.text_input("종목명 검색", placeholder="예) 삼성전자, Apple, Tesla")
     
-    if st.button("종목 추가"):
-        if name and ticker:
-            add_stock(name, ticker, market)
-            st.success(f"{name} 추가됐어요!")
-            st.rerun()
+    if keyword:
+        with st.spinner("검색 중..."):
+            results = search_ticker(keyword)
+        
+        if results:
+            options = {f"{r['name']} ({r['ticker']}) - {r['region']}": r for r in results}
+            selected_result = st.selectbox("종목 선택", list(options.keys()))
+            
+            if st.button("관심 종목 추가"):
+                r = options[selected_result]
+                ticker = r["ticker"]
+                name = r["name"]
+                market = "국내" if ticker.isdigit() else "미국"
+                add_stock(name, ticker, market)
+                st.success(f"{name} 추가됐어요!")
+                st.rerun()
         else:
-            st.warning("종목명과 티커를 입력해주세요.")
+            st.warning("검색 결과가 없어요.")
     
     st.divider()
     st.subheader("📌 저장된 종목 목록")

@@ -5,10 +5,13 @@ from dotenv import load_dotenv
 load_dotenv()
 
 API_KEY = os.getenv("ALPHA_VANTAGE_API_KEY")
+PUBLIC_API_KEY = os.getenv("PUBLIC_DATA_API_KEY")
+
+# 검색 캐시 (종목명/티커는 자주 안 바뀌므로 저장)
+_search_cache = {}
 
 def get_stock_data(ticker):
     url = "https://www.alphavantage.co/query"
-    
     params = {
         "function": "GLOBAL_QUOTE",
         "symbol": ticker,
@@ -16,9 +19,7 @@ def get_stock_data(ticker):
     }
     response = requests.get(url, params=params)
     data = response.json()
-    
     quote = data.get("Global Quote", {})
-    
     return {
         "ticker": ticker,
         "price": quote.get("05. price", "N/A"),
@@ -28,7 +29,6 @@ def get_stock_data(ticker):
 
 def get_company_overview(ticker):
     url = "https://www.alphavantage.co/query"
-    
     params = {
         "function": "OVERVIEW",
         "symbol": ticker,
@@ -36,7 +36,6 @@ def get_company_overview(ticker):
     }
     response = requests.get(url, params=params)
     data = response.json()
-    
     return {
         "market_cap": data.get("MarketCapitalization", "N/A"),
         "52_week_high": data.get("52WeekHigh", "N/A"),
@@ -47,7 +46,6 @@ def get_company_overview(ticker):
 
 def get_chart_data(ticker):
     url = "https://www.alphavantage.co/query"
-    
     params = {
         "function": "TIME_SERIES_DAILY",
         "symbol": ticker,
@@ -56,22 +54,16 @@ def get_chart_data(ticker):
     }
     response = requests.get(url, params=params)
     data = response.json()
-    
     time_series = data.get("Time Series (Daily)", {})
-    
     dates = []
     closes = []
-    
     for date, values in sorted(time_series.items()):
         dates.append(date)
         closes.append(float(values["4. close"]))
-    
     return dates, closes
-PUBLIC_API_KEY = os.getenv("PUBLIC_DATA_API_KEY")
 
 def get_kr_stock_data(ticker):
     url = "https://apis.data.go.kr/1160100/service/GetStockSecuritiesInfoService/getStockPriceInfo"
-    
     params = {
         "serviceKey": PUBLIC_API_KEY,
         "numOfRows": 1,
@@ -79,10 +71,8 @@ def get_kr_stock_data(ticker):
         "resultType": "json",
         "likeSrtnCd": ticker
     }
-    
     response = requests.get(url, params=params)
     data = response.json()
-    
     try:
         item = data["response"]["body"]["items"]["item"][0]
         return {
@@ -95,3 +85,31 @@ def get_kr_stock_data(ticker):
         }
     except:
         return None
+
+def search_ticker(keyword):
+    # 캐시에 있으면 API 호출 안함
+    if keyword in _search_cache:
+        return _search_cache[keyword]
+    
+    url = "https://www.alphavantage.co/query"
+    params = {
+        "function": "SYMBOL_SEARCH",
+        "keywords": keyword,
+        "apikey": API_KEY
+    }
+    response = requests.get(url, params=params)
+    data = response.json()
+    results = []
+    for match in data.get("bestMatches", []):
+        ticker = match.get("1. symbol", "")
+        name = match.get("2. name", "")
+        region = match.get("4. region", "")
+        results.append({
+            "ticker": ticker,
+            "name": name,
+            "region": region
+        })
+    
+    # 결과 캐시에 저장
+    _search_cache[keyword] = results
+    return results
