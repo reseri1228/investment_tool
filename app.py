@@ -1,11 +1,16 @@
 import streamlit as st
 import plotly.graph_objects as go
 from agents.storage_agent import init_db, save_memo, load_memos
-from agents.stock_agent import init_stock_db, add_stock, load_stocks, delete_stock
+from agents.stock_agent import init_stock_db, add_stock, load_stocks, delete_stock, update_stock_status, update_stock_tag
 from agents.research_agent import get_stock_data, get_company_overview, get_chart_data, get_kr_stock_data, search_ticker
 # 스타일 설정
 st.markdown("""
     <style>
+    @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+    
+    * {
+        font-family: 'Pretendard', sans-serif !important;
+    }
     .main-title {
         font-size: 2.5rem;
         font-weight: 800;
@@ -29,6 +34,9 @@ st.markdown("""
         border-radius: 8px;
         font-weight: 600;
         transition: 0.2s;
+        padding: 0.3rem 0.8rem;
+        font-size: 0.85rem;
+        width: auto !important;
     }
     .stTabs [data-baseweb="tab"] {
         font-weight: 600;
@@ -40,7 +48,7 @@ st.markdown("""
 init_db()
 init_stock_db()
 
-st.markdown('<p class="main-title">📈 투자 판단 보조 도구</p>', unsafe_allow_html=True)
+st.markdown("### 📈 투자 판단 보조 도구")
 st.markdown('<p class="sub-text">투자 초보자를 위한 종목 분석 도우미</p>', unsafe_allow_html=True)
 
 # session_state 초기화
@@ -72,7 +80,7 @@ with tab1:
                 r = options[selected_result]
                 ticker = r["ticker"]
                 name = r["name"]
-                market = "국내" if ticker.isdigit() else "미국"
+                market = r["market"]  # ← 자동분류로 변경
                 add_stock(name, ticker, market)
                 st.success(f"{name} 추가됐어요!")
                 st.rerun()
@@ -81,21 +89,55 @@ with tab1:
     
     st.divider()
     st.subheader("📌 저장된 종목 목록")
-    stocks = load_stocks()
+    
+    # 필터 버튼
+    filter_options = ["전체", "관심", "관찰", "보류", "제외"]
+    if "status_filter" not in st.session_state:
+        st.session_state.status_filter = "전체"
+    
+    cols = st.columns([1,1,1,1,1,3])
+    for i, option in enumerate(filter_options):
+        with cols[i]:
+            if st.button(option, key=f"filter_{option}"):
+                st.session_state.status_filter = option
+    
+    st.caption(f"현재 필터: {st.session_state.status_filter}")
+    
+    # 필터 적용
+    all_stocks = load_stocks()
+    if st.session_state.status_filter == "전체":
+        stocks = all_stocks
+    else:
+        stocks = [s for s in all_stocks if s[4] == st.session_state.status_filter]
     
     if stocks:
         for stock in stocks:
-            col1, col2, col3, col4 = st.columns([3, 2, 2, 1])
-            with col1:
-                st.write(f"**{stock[1]}**")
-            with col2:
-                st.write(stock[2])
-            with col3:
-                st.write(stock[3])
-            with col4:
-                if st.button("삭제", key=f"del_{stock[0]}"):
-                    delete_stock(stock[0])
-                    st.rerun()
+            with st.container():
+                col1, col2, col3 = st.columns([4, 3, 1])
+                with col1:
+                    st.write(f"**{stock[1]}** ({stock[2]}) — {stock[3]}")
+                with col2:
+                    status = st.selectbox(
+                        "상태",
+                        ["관심", "관찰", "보류", "제외"],
+                        index=["관심", "관찰", "보류", "제외"].index(stock[4]) if stock[4] in ["관심", "관찰", "보류", "제외"] else 0,
+                        key=f"status_{stock[0]}"
+                    )
+                    if status != stock[4]:
+                        update_stock_status(stock[0], status)
+                        st.rerun()
+                with col3:
+                    if st.button("삭제", key=f"del_{stock[0]}"):
+                        delete_stock(stock[0])
+                        st.rerun()
+                tag = st.text_input(
+                    "태그 (예: AI, 반도체)",
+                    value=stock[5] if stock[5] else "",
+                    key=f"tag_{stock[0]}"
+                )
+                if tag != stock[5]:
+                    update_stock_tag(stock[0], tag)
+                st.divider()
     else:
         st.info("아직 저장된 종목이 없어요.")
 

@@ -7,8 +7,15 @@ load_dotenv()
 API_KEY = os.getenv("ALPHA_VANTAGE_API_KEY")
 PUBLIC_API_KEY = os.getenv("PUBLIC_DATA_API_KEY")
 
-# 검색 캐시 (종목명/티커는 자주 안 바뀌므로 저장)
 _search_cache = {}
+
+def detect_market(region):
+    if region is None:
+        return "미국"
+    region_lower = region.lower()
+    if "korea" in region_lower:
+        return "국내"
+    return "미국"
 
 def get_stock_data(ticker):
     url = "https://www.alphavantage.co/query"
@@ -87,7 +94,6 @@ def get_kr_stock_data(ticker):
         return None
 
 def search_ticker(keyword):
-    # 캐시에 있으면 API 호출 안함
     if keyword in _search_cache:
         return _search_cache[keyword]
     
@@ -107,9 +113,9 @@ def search_ticker(keyword):
         results.append({
             "ticker": ticker,
             "name": name,
-            "region": region
+            "region": region,
+            "market": detect_market(region)
         })
     
-    # 결과 캐시에 저장
     _search_cache[keyword] = results
     return results
