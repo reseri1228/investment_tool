@@ -31,3 +31,16 @@ def load_memos():
     memos = cursor.fetchall()
     conn.close()
     return memos
+def delete_memo(memo_id):
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM memos WHERE id = ?", (memo_id,))
+    conn.commit()
+    conn.close()
+
+def update_memo(memo_id, new_content):
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("UPDATE memos SET content = ? WHERE id = ?", (new_content, memo_id))
+    conn.commit()
+    conn.close()

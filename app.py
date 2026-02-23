@@ -1,15 +1,15 @@
 import streamlit as st
 import plotly.graph_objects as go
-from agents.storage_agent import init_db, save_memo, load_memos
+from agents.storage_agent import init_db, save_memo, load_memos, delete_memo, update_memo
 from agents.stock_agent import init_stock_db, add_stock, load_stocks, delete_stock, update_stock_status, update_stock_tag
 from agents.research_agent import get_stock_data, get_company_overview, get_chart_data, get_kr_stock_data, search_ticker
 # 스타일 설정
 st.markdown("""
     <style>
-    @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+    @import url('https://cdn.jsdelivr.net/gh/sunn-us/SUIT/fonts/static/woff2/SUIT.css');
     
     * {
-        font-family: 'Pretendard', sans-serif !important;
+        font-family: 'SUIT', sans-serif !important;
     }
     .main-title {
         font-size: 2.5rem;
@@ -113,7 +113,7 @@ with tab1:
     if stocks:
         for stock in stocks:
             with st.container():
-                col1, col2, col3 = st.columns([4, 3, 1])
+                col1, col2, col3, col4 = st.columns([4, 2, 3, 1])
                 with col1:
                     st.write(f"**{stock[1]}** ({stock[2]}) — {stock[3]}")
                 with col2:
@@ -127,16 +127,17 @@ with tab1:
                         update_stock_status(stock[0], status)
                         st.rerun()
                 with col3:
+                    tag = st.text_input(
+                        "태그 (예: AI, 반도체)",
+                        value=stock[5] if stock[5] else "",
+                        key=f"tag_{stock[0]}"
+                    )
+                    if tag != stock[5]:
+                        update_stock_tag(stock[0], tag)
+                with col4:
                     if st.button("삭제", key=f"del_{stock[0]}"):
                         delete_stock(stock[0])
                         st.rerun()
-                tag = st.text_input(
-                    "태그 (예: AI, 반도체)",
-                    value=stock[5] if stock[5] else "",
-                    key=f"tag_{stock[0]}"
-                )
-                if tag != stock[5]:
-                    update_stock_tag(stock[0], tag)
                 st.divider()
     else:
         st.info("아직 저장된 종목이 없어요.")
@@ -190,9 +191,9 @@ with tab2:
             with col1:
                 st.metric("현재 주가", f"${quote['price']}")
             with col2:
-                st.metric("등락률", quote['change_percent'])
+                st.metric("등락률 (전일 대비)", quote['change_percent'])
             with col3:
-                st.metric("거래량", quote['volume'])
+                st.metric("거래량", f"{int(quote['volume']):,} 주")
            # 차트
             st.divider()
             st.subheader("📈 주가 차트 (최근 100일)")
@@ -217,16 +218,36 @@ with tab2:
                 st.info("차트 데이터를 불러올 수 없어요.") 
             st.divider()
             st.subheader("📋 체크리스트")
-            
-            col1, col2 = st.columns(2)
-            with col1:
-                debt = st.radio("부채비율", ["낮음", "보통", "높음"])
-                dividend = st.radio("배당 여부", ["있음", "없음"])
-                growth = st.radio("업종 성장성", ["낮음", "보통", "높음"])
-            with col2:
-                news = st.radio("최근 뉴스", ["긍정", "중립", "부정"])
-                period = st.radio("투자 기간", ["단기", "중기", "장기"])
-                risk = st.radio("리스크 수준", ["낮음", "보통", "높음"])
+
+            if "show_checklist" not in st.session_state:
+                st.session_state.show_checklist = False
+
+            if st.button("✅ 체크리스트 열기 / 닫기"):
+                st.session_state.show_checklist = not st.session_state.show_checklist
+
+            if st.session_state.show_checklist:
+                col1, col2 = st.columns(2)
+                with col1:
+                    with st.container(border=True):
+                        debt = st.radio("💰 부채비율", ["낮음", "보통", "높음"])
+                    with st.container(border=True):
+                        dividend = st.radio("🎁 배당 여부", ["있음", "없음"])
+                    with st.container(border=True):
+                        growth = st.radio("🌱 업종 성장성", ["낮음", "보통", "높음"])
+                with col2:
+                    with st.container(border=True):
+                        news = st.radio("📰 최근 뉴스", ["긍정", "중립", "부정"])
+                    with st.container(border=True):
+                        period = st.radio("🎯 내 목표 투자기간", ["단기", "중기", "장기"])
+                    with st.container(border=True):
+                        risk = st.radio("⚠️ 리스크 수준", ["낮음", "보통", "높음"])
+            else:
+                debt = "보통"
+                dividend = "없음"
+                growth = "보통"
+                news = "중립"
+                period = "단기"
+                risk = "보통"
             
             st.divider()
             
@@ -281,11 +302,36 @@ with tab2:
 # ── Tab 3: 메모 관리 ──
 with tab3:
     st.subheader("📝 저장된 분석 메모")
+    
     memos = load_memos()
     if memos:
+        # 종목별 필터
+        titles = ["전체"] + list(set([m[1] for m in memos]))
+        selected_title = st.selectbox("종목별 보기", titles)
+        
+        if selected_title != "전체":
+            memos = [m for m in memos if m[1] == selected_title]
+        
         for memo in memos:
-            st.markdown(f"**{memo[1]}** — {memo[3]}")
-            st.write(memo[2])
-            st.divider()
+            with st.container(border=True):
+                col1, col2 = st.columns([8, 1])
+                with col1:
+                    st.markdown(f"**{memo[1]}** — {memo[3]}")
+                with col2:
+                    if st.button("🗑️", key=f"del_memo_{memo[0]}"):
+                        delete_memo(memo[0])
+                        st.rerun()
+                
+                # 수정 가능한 텍스트 입력란
+                new_content = st.text_area(
+                    "내용",
+                    value=memo[2],
+                    key=f"memo_content_{memo[0]}",
+                    height=100
+                )
+                if new_content != memo[2]:
+                    if st.button("💾 저장", key=f"save_memo_{memo[0]}"):
+                        update_memo(memo[0], new_content)
+                        st.rerun()
     else:
         st.info("저장된 메모가 없어요.")
