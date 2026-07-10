@@ -189,11 +189,18 @@ with tab2:
             st.subheader(f"📊 {selected_stock[1]} 기본 정보")
             col1, col2, col3 = st.columns(3)
             with col1:
-                st.metric("현재 주가", f"${quote['price']}")
+                currency = "원" if selected_stock[3] == "국내" else "$"
+                price = quote['price']
+                if price != "N/A":
+                    price = f"{int(float(price)):,}"
+                st.metric("현재 주가", f"{price} {currency}")
             with col2:
                 st.metric("등락률 (전일 대비)", quote['change_percent'])
             with col3:
-                st.metric("거래량", f"{int(quote['volume']):,} 주")
+                volume = quote['volume']
+                if volume != "N/A":
+                    volume = f"{int(float(volume)):,}"
+                st.metric("거래량", f"{volume} 주")
            # 차트
             st.divider()
             st.subheader("📈 주가 차트 (최근 100일)")

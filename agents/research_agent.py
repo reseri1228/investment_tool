@@ -1,121 +1,102 @@
-import requests
+import yfinance as yf
 import os
 from dotenv import load_dotenv
 
 load_dotenv()
 
-API_KEY = os.getenv("ALPHA_VANTAGE_API_KEY")
 PUBLIC_API_KEY = os.getenv("PUBLIC_DATA_API_KEY")
 
-_search_cache = {}
-
-def detect_market(region):
-    if region is None:
-        return "미국"
-    region_lower = region.lower()
-    if "korea" in region_lower:
+def detect_market(ticker):
+    if ticker.endswith(".KS") or ticker.endswith(".KQ"):
         return "국내"
     return "미국"
 
 def get_stock_data(ticker):
-    url = "https://www.alphavantage.co/query"
-    params = {
-        "function": "GLOBAL_QUOTE",
-        "symbol": ticker,
-        "apikey": API_KEY
-    }
-    response = requests.get(url, params=params)
-    data = response.json()
-    quote = data.get("Global Quote", {})
-    return {
-        "ticker": ticker,
-        "price": quote.get("05. price", "N/A"),
-        "change_percent": quote.get("10. change percent", "N/A"),
-        "volume": quote.get("06. volume", "N/A")
-    }
-
-def get_company_overview(ticker):
-    url = "https://www.alphavantage.co/query"
-    params = {
-        "function": "OVERVIEW",
-        "symbol": ticker,
-        "apikey": API_KEY
-    }
-    response = requests.get(url, params=params)
-    data = response.json()
-    return {
-        "market_cap": data.get("MarketCapitalization", "N/A"),
-        "52_week_high": data.get("52WeekHigh", "N/A"),
-        "52_week_low": data.get("52WeekLow", "N/A"),
-        "dividend": data.get("DividendYield", "N/A"),
-        "debt_to_equity": data.get("DebtToEquityRatio", "N/A")
-    }
-
-def get_chart_data(ticker):
-    url = "https://www.alphavantage.co/query"
-    params = {
-        "function": "TIME_SERIES_DAILY",
-        "symbol": ticker,
-        "outputsize": "compact",
-        "apikey": API_KEY
-    }
-    response = requests.get(url, params=params)
-    data = response.json()
-    time_series = data.get("Time Series (Daily)", {})
-    dates = []
-    closes = []
-    for date, values in sorted(time_series.items()):
-        dates.append(date)
-        closes.append(float(values["4. close"]))
-    return dates, closes
-
-def get_kr_stock_data(ticker):
-    url = "https://apis.data.go.kr/1160100/service/GetStockSecuritiesInfoService/getStockPriceInfo"
-    params = {
-        "serviceKey": PUBLIC_API_KEY,
-        "numOfRows": 1,
-        "pageNo": 1,
-        "resultType": "json",
-        "likeSrtnCd": ticker
-    }
-    response = requests.get(url, params=params)
-    data = response.json()
     try:
-        item = data["response"]["body"]["items"]["item"][0]
+        stock = yf.Ticker(ticker)
+        info = stock.info
         return {
             "ticker": ticker,
-            "name": item.get("itmsNm", "N/A"),
-            "price": item.get("clpr", "N/A"),
-            "change_percent": item.get("fltRt", "N/A"),
-            "volume": item.get("trqu", "N/A"),
-            "market_cap": item.get("mrktTotAmt", "N/A")
+            "price": str(info.get("currentPrice", "N/A")),
+            "change_percent": str(round((info.get("currentPrice", 0) - info.get("previousClose", 0)) / info.get("previousClose", 1) * 100, 2)) + "%",
+            "volume": str(info.get("regularMarketVolume", "N/A"))
+        }
+    except:
+        return {
+            "ticker": ticker,
+            "price": "N/A",
+            "change_percent": "N/A",
+            "volume": "N/A"
+        }
+
+def get_company_overview(ticker):
+    try:
+        stock = yf.Ticker(ticker)
+        info = stock.info
+        return {
+            "market_cap": info.get("marketCap", "N/A"),
+            "52_week_high": info.get("fiftyTwoWeekHigh", "N/A"),
+            "52_week_low": info.get("fiftyTwoWeekLow", "N/A"),
+            "dividend": info.get("dividendYield", "N/A"),
+            "debt_to_equity": info.get("debtToEquity", "N/A")
+        }
+    except:
+        return None
+
+def get_chart_data(ticker):
+    try:
+        stock = yf.Ticker(ticker)
+        hist = stock.history(period="6mo")
+        dates = hist.index.strftime("%Y-%m-%d").tolist()
+        closes = hist["Close"].tolist()
+        return dates, closes
+    except:
+        return [], []
+
+def get_kr_stock_data(ticker):
+    try:
+        # 이미 .KS나 .KQ가 붙어있으면 그대로 사용
+        if ticker.endswith(".KS") or ticker.endswith(".KQ"):
+            full_ticker = ticker
+        else:
+            full_ticker = ticker + ".KS"
+        
+        stock = yf.Ticker(full_ticker)
+        info = stock.info
+        if info.get("currentPrice"):
+            return {
+                "ticker": ticker,
+                "name": info.get("longName", "N/A"),
+                "price": str(info.get("currentPrice", "N/A")),
+                "change_percent": str(round(info.get("regularMarketChangePercent", 0), 2)) + "%",
+                "volume": str(info.get("regularMarketVolume", "N/A")),
+                "market_cap": str(info.get("marketCap", "N/A"))
+            }
+        stock = yf.Ticker(ticker + ".KQ")
+        info = stock.info
+        return {
+            "ticker": ticker,
+            "name": info.get("longName", "N/A"),
+            "price": str(info.get("currentPrice", "N/A")),
+            "change_percent": str(round(info.get("regularMarketChangePercent", 0) * 100, 2)) + "%",
+            "volume": str(info.get("regularMarketVolume", "N/A")),
+            "market_cap": str(info.get("marketCap", "N/A"))
         }
     except:
         return None
 
 def search_ticker(keyword):
-    if keyword in _search_cache:
-        return _search_cache[keyword]
-    
-    url = "https://www.alphavantage.co/query"
-    params = {
-        "function": "SYMBOL_SEARCH",
-        "keywords": keyword,
-        "apikey": API_KEY
-    }
-    response = requests.get(url, params=params)
-    data = response.json()
-    results = []
-    for match in data.get("bestMatches", []):
-        ticker = match.get("1. symbol", "")
-        name = match.get("2. name", "")
-        region = match.get("4. region", "")
-        results.append({
-            "ticker": ticker,
-            "name": name,
-            "region": region,
-            "market": detect_market(region)
-        })
-    
-    _search_cache[keyword] = results
-    return results
+    try:
+        ticker = yf.Ticker(keyword)
+        info = ticker.info
+        if info.get("longName"):
+            market = detect_market(keyword)
+            return [{
+                "ticker": keyword,
+                "name": info.get("longName", "N/A"),
+                "region": "Korea" if market == "국내" else "United States",
+                "market": market
+            }]
+        return []
+    except:
+        return []
