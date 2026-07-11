@@ -66,11 +66,19 @@ tab1, tab2, tab3 = st.tabs(["관심 종목 관리", "종목 분석", "메모 관
 with tab1:
     st.subheader("📋 관심 종목 추가")
     
-    keyword = st.text_input("종목명 검색", placeholder="예) 삼성전자, Apple, Tesla")
+    market_choice = st.radio("시장 선택", ["🇰🇷 국내", "🇺🇸 미국"], horizontal=True)
+    
+    keyword = st.text_input("종목명 검색", placeholder="예) 삼성전자 → Samsung, Apple, Tesla")
     
     if keyword:
         with st.spinner("검색 중..."):
             results = search_ticker(keyword)
+        
+        # 시장에 따라 필터링
+        if market_choice == "🇰🇷 국내":
+            results = [r for r in results if r["market"] == "국내"]
+        else:
+            results = [r for r in results if r["market"] == "미국"]
         
         if results:
             options = {f"{r['name']} ({r['ticker']}) - {r['region']}": r for r in results}
@@ -80,12 +88,12 @@ with tab1:
                 r = options[selected_result]
                 ticker = r["ticker"]
                 name = r["name"]
-                market = r["market"]  # ← 자동분류로 변경
+                market = r["market"]
                 add_stock(name, ticker, market)
                 st.success(f"{name} 추가됐어요!")
                 st.rerun()
         else:
-            st.warning("검색 결과가 없어요.")
+            st.warning("검색 결과가 없어요. 영어로 검색해보세요!")
     
     st.divider()
     st.subheader("📌 저장된 종목 목록")

@@ -87,16 +87,19 @@ def get_kr_stock_data(ticker):
 
 def search_ticker(keyword):
     try:
-        ticker = yf.Ticker(keyword)
-        info = ticker.info
-        if info.get("longName"):
-            market = detect_market(keyword)
-            return [{
-                "ticker": keyword,
-                "name": info.get("longName", "N/A"),
-                "region": "Korea" if market == "국내" else "United States",
+        search = yf.Search(keyword, max_results=10)
+        results = []
+        for item in search.quotes:
+            ticker = item.get("symbol", "")
+            name = item.get("shortname") or item.get("longname", "N/A")
+            exchange = item.get("exchDisp", "")
+            market = "국내" if exchange in ["Korea", "KOSDAQ"] else "미국"
+            results.append({
+                "ticker": ticker,
+                "name": name,
+                "region": exchange,
                 "market": market
-            }]
-        return []
+            })
+        return results
     except:
         return []
