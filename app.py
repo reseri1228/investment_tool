@@ -102,15 +102,12 @@ with tab1:
     filter_options = ["전체", "관심", "관찰", "보류", "제외"]
     if "status_filter" not in st.session_state:
         st.session_state.status_filter = "전체"
-    
-    cols = st.columns([1,1,1,1,1,3])
+
+    cols = st.columns(len(filter_options) + 3)
     for i, option in enumerate(filter_options):
         with cols[i]:
             if st.button(option, key=f"filter_{option}"):
                 st.session_state.status_filter = option
-    
-    st.caption(f"현재 필터: {st.session_state.status_filter}")
-    
     # 필터 적용
     all_stocks = load_stocks()
     if st.session_state.status_filter == "전체":
@@ -143,7 +140,7 @@ with tab1:
                     if tag != stock[5]:
                         update_stock_tag(stock[0], tag)
                 with col4:
-                    if st.button("삭제", key=f"del_{stock[0]}"):
+                    if st.button("🗑️", key=f"del_{stock[0]}"):
                         delete_stock(stock[0])
                         st.rerun()
                 st.divider()
