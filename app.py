@@ -31,12 +31,15 @@ st.markdown("""
         border: 1px solid #2e2e3e;
     }
     .stButton > button {
-        border-radius: 8px;
+        border-radius: 20px;
         font-weight: 600;
         transition: 0.2s;
         padding: 0.3rem 0.8rem;
         font-size: 0.85rem;
         width: auto !important;
+        border: none !important;
+        background: none !important;
+        color: #555 !important;
     }
     .stTabs [data-baseweb="tab"] {
         font-weight: 600;
@@ -106,8 +109,13 @@ with tab1:
     cols = st.columns(len(filter_options) + 3)
     for i, option in enumerate(filter_options):
         with cols[i]:
-            if st.button(option, key=f"filter_{option}"):
-                st.session_state.status_filter = option
+            is_selected = st.session_state.status_filter == option
+            if is_selected:
+                st.markdown(f'<div style="background:#9B59B6;color:white;border-radius:20px;padding:5px 16px;font-size:0.9rem;font-weight:600;text-align:center;margin-bottom:8px;">{option}</div>', unsafe_allow_html=True)
+            else:
+                if st.button(option, key=f"filter_{option}"):
+                    st.session_state.status_filter = option
+                    st.rerun()
     # 필터 적용
     all_stocks = load_stocks()
     if st.session_state.status_filter == "전체":
