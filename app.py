@@ -123,37 +123,50 @@ with tab1:
     else:
         stocks = [s for s in all_stocks if s[4] == st.session_state.status_filter]
     
-    if stocks:
-        for stock in stocks:
-            with st.container():
-                col1, col2, col3, col4 = st.columns([4, 2, 3, 1])
-                with col1:
-                    st.write(f"**{stock[1]}** ({stock[2]}) — {stock[3]}")
-                with col2:
-                    status = st.selectbox(
-                        "상태",
-                        ["관심", "관찰", "보류", "제외"],
-                        index=["관심", "관찰", "보류", "제외"].index(stock[4]) if stock[4] in ["관심", "관찰", "보류", "제외"] else 0,
-                        key=f"status_{stock[0]}"
-                    )
-                    if status != stock[4]:
-                        update_stock_status(stock[0], status)
-                        st.rerun()
-                with col3:
-                    tag = st.text_input(
-                        "태그 (예: AI, 반도체)",
-                        value=stock[5] if stock[5] else "",
-                        key=f"tag_{stock[0]}"
-                    )
-                    if tag != stock[5]:
-                        update_stock_tag(stock[0], tag)
-                with col4:
-                    if st.button("🗑️", key=f"del_{stock[0]}"):
-                        delete_stock(stock[0])
-                        st.rerun()
-                st.divider()
-    else:
-        st.info("아직 저장된 종목이 없어요.")
+if stocks:
+            kr_stocks = [s for s in stocks if s[3] == "국내"]
+            us_stocks = [s for s in stocks if s[3] == "미국"]
+
+            def show_stocks(stock_list):
+                for stock in stock_list:
+                    with st.container():
+                        col1, col2, col3, col4 = st.columns([4, 2, 3, 1])
+                        with col1:
+                            st.write(f"**{stock[1]}** ({stock[2]}) — {stock[3]}")
+                        with col2:
+                            status = st.selectbox(
+                                "상태",
+                                ["관심", "관찰", "보류", "제외"],
+                                index=["관심", "관찰", "보류", "제외"].index(stock[4]) if stock[4] in ["관심", "관찰", "보류", "제외"] else 0,
+                                key=f"status_{stock[0]}"
+                            )
+                            if status != stock[4]:
+                                update_stock_status(stock[0], status)
+                                st.rerun()
+                        with col3:
+                            tag = st.text_input(
+                                "태그 (예: AI, 반도체)",
+                                value=stock[5] if stock[5] else "",
+                                key=f"tag_{stock[0]}"
+                            )
+                            if tag != stock[5]:
+                                update_stock_tag(stock[0], tag)
+                        with col4:
+                            if st.button("🗑️", key=f"del_{stock[0]}"):
+                                delete_stock(stock[0])
+                                st.rerun()
+                        st.divider()
+
+            if kr_stocks:
+                st.markdown("### 🇰🇷 국내")
+                show_stocks(kr_stocks)
+
+            if us_stocks:
+                st.markdown("### 🇺🇸 미국")
+                show_stocks(us_stocks)
+
+else:
+            st.info("아직 저장된 종목이 없어요.")
 
 # ── Tab 2: 종목 분석 ──
 with tab2:
@@ -247,111 +260,169 @@ with tab2:
 
             if st.session_state.show_checklist:
                 col1, col2 = st.columns(2)
-                with col1:
-                    with st.container(border=True):
-                        debt = st.radio("💰 부채비율", ["낮음", "보통", "높음"])
-                    with st.container(border=True):
-                        dividend = st.radio("🎁 배당 여부", ["있음", "없음"])
-                    with st.container(border=True):
-                        growth = st.radio("🌱 업종 성장성", ["낮음", "보통", "높음"])
-                with col2:
-                    with st.container(border=True):
-                        news = st.radio("📰 최근 뉴스", ["긍정", "중립", "부정"])
-                    with st.container(border=True):
-                        period = st.radio("🎯 내 목표 투자기간", ["단기", "중기", "장기"])
-                    with st.container(border=True):
-                        risk = st.radio("⚠️ 리스크 수준", ["낮음", "보통", "높음"])
-            else:
-                debt = "보통"
-                dividend = "없음"
-                growth = "보통"
-                news = "중립"
-                period = "단기"
-                risk = "보통"
-            
-            st.divider()
-            
-            user_type = st.radio("나는?", ["A타입 - 금액 입력해서 배분 참고", "B타입 - 정보만 보고 선택"])
-            
-            if "A타입" in user_type:
-                amount = st.number_input("투자 금액 입력 (원)", min_value=0, step=10000)
-            
-            if st.button("판단 보조 결과 보기"):
-                score = 0
-                if debt == "낮음": score += 2
-                elif debt == "보통": score += 1
-                if dividend == "있음": score += 1
-                if growth == "높음": score += 2
-                elif growth == "보통": score += 1
-                if news == "긍정": score += 2
-                elif news == "중립": score += 1
-                if period == "장기": score += 1
-                if risk == "낮음": score += 1
-                
-                st.subheader(f"📊 총점: {score} / 10")
-                
-                if score >= 8:
-                    result = "✅ 긍정적인 종목이에요. 추가 검토 후 투자를 고려해보세요."
-                elif score >= 5:
-                    result = "⚠️ 보통 수준이에요. 신중하게 검토하세요."
-                else:
-                    result = "❌ 리스크가 높아 보여요. 충분한 조사가 필요해요."
-                
-                st.info(result)
-                
-                if "A타입" in user_type and amount > 0:
-                    st.subheader("💰 금액 배분 참고")
-                    if score >= 8:
-                        ratio = 0.3
-                    elif score >= 5:
-                        ratio = 0.2
-                    else:
-                        ratio = 0.1
-                    st.write(f"총 투자금액: {amount:,}원")
-                    st.write(f"권장 배분 비율: {int(ratio*100)}%")
-                    st.write(f"권장 투자금액: {int(amount * ratio):,}원")
-                
-                save_memo(
-                    title=f"{selected_stock[1]} 분석",
-                    content=f"총점: {score}/10 | 부채:{debt} | 배당:{dividend} | 성장:{growth} | 뉴스:{news} | 기간:{period} | 리스크:{risk}"
-                )
-                st.success("분석 결과가 메모에 저장됐어요!")
-    else:
-        st.info("먼저 관심 종목을 추가해주세요.")
 
-# ── Tab 3: 메모 관리 ──
-with tab3:
-    st.subheader("📝 저장된 분석 메모")
-    
-    memos = load_memos()
-    if memos:
-        # 종목별 필터
-        titles = ["전체"] + list(set([m[1] for m in memos]))
-        selected_title = st.selectbox("종목별 보기", titles)
-        
-        if selected_title != "전체":
-            memos = [m for m in memos if m[1] == selected_title]
-        
-        for memo in memos:
-            with st.container(border=True):
-                col1, col2 = st.columns([8, 1])
+                    # yfinance로 부채비율/배당 자동 가져오기
+                import yfinance as yf
+                ticker_symbol = selected_stock[2]
+                try:
+                        info = yf.Ticker(ticker_symbol).info
+                        # 부채비율
+                        debt_ratio = info.get("debtToEquity", None)
+                        if debt_ratio is not None:
+                            if debt_ratio < 50:
+                                auto_debt = "낮음"
+                            elif debt_ratio < 150:
+                                auto_debt = "보통"
+                            else:
+                                auto_debt = "높음"
+                            debt_label = f"💰 부채비율 ({debt_ratio:.0f}%)"
+                        else:
+                            auto_debt = "보통"
+                            debt_label = "💰 부채비율 (데이터 없음)"
+
+                        # 배당
+                        div_yield = info.get("dividendYield", None)
+                        if div_yield and div_yield > 0:
+                            auto_dividend = "있음"
+                            div_label = f"🎁 배당 여부 (수익률: {div_yield*100:.1f}%)"
+                        else:
+                            auto_dividend = "없음"
+                            div_label = "🎁 배당 여부"
+                except:
+                        auto_debt = "보통"
+                        debt_label = "💰 부채비율 (데이터 없음)"
+                        auto_dividend = "없음"
+                        div_label = "🎁 배당 여부"
+
                 with col1:
-                    st.markdown(f"**{memo[1]}** — {memo[3]}")
+                        with st.container(border=True):
+                            debt = st.radio(debt_label, ["낮음", "보통", "높음"],
+                                index=["낮음", "보통", "높음"].index(auto_debt))
+                        with st.container(border=True):
+                            dividend = st.radio(div_label, ["있음", "없음"],
+                                index=["있음", "없음"].index(auto_dividend))
+                        with st.container(border=True):
+                            growth = st.radio("🌱 업종 성장성", ["낮음", "보통", "높음"])
                 with col2:
-                    if st.button("🗑️", key=f"del_memo_{memo[0]}"):
-                        delete_memo(memo[0])
-                        st.rerun()
+                        with st.container(border=True):
+                            news = st.radio("📰 최근 뉴스", ["긍정", "중립", "부정"])
+                        with st.container(border=True):
+                            period = st.radio("🎯 내 목표 투자기간", ["단기", "중기", "장기"])
+                        with st.container(border=True):
+                            risk = st.radio("⚠️ 리스크 수준", ["낮음", "보통", "높음"])
+            else:
+                    debt = "보통"
+                    dividend = "없음"
+                    growth = "보통"
+                    news = "중립"
+                    period = "단기"
+                    risk = "보통"
+                    
+                    if "A타입" in user_type:
+                        st.markdown("""
+                        <style>
+                        input[aria-label="투자 금액 입력 (원)"] {
+                            text-align: right;
+                        }
+                        </style>
+                        """, unsafe_allow_html=True)
+
+                        if "amount_reset_count" not in st.session_state:
+                            st.session_state["amount_reset_count"] = 0
+
+                        amount_input = st.text_input(
+                            "투자 금액 입력 (원)",
+                            value="0",
+                            key=f"amount_input_{st.session_state['amount_reset_count']}"
+                        )
+                        amount_clean = amount_input.replace(",", "").strip()
+                        if amount_clean == "":
+                            amount = 0
+                        elif amount_clean.isdigit():
+                            amount = int(amount_clean)
+                        else:
+                            amount = 0
+                            st.warning("숫자만 입력해주세요")
+                        st.write(f"입력된 금액: {amount:,}원")
+                    
+                    if st.button("판단 보조 결과 보기"):
+                        score = 0
+                        if debt == "낮음": score += 2
+                        elif debt == "보통": score += 1
+                        if dividend == "있음": score += 1
+                        if growth == "높음": score += 2
+                        elif growth == "보통": score += 1
+                        if news == "긍정": score += 2
+                        elif news == "중립": score += 1
+                        if period == "장기": score += 1
+                        if risk == "낮음": score += 1
+                        
+                        st.subheader(f"📊 총점: {score} / 10")
+                        
+                        if score >= 8:
+                            result = "✅ 긍정적인 종목이에요. 추가 검토 후 투자를 고려해보세요."
+                        elif score >= 5:
+                            result = "⚠️ 보통 수준이에요. 신중하게 검토하세요."
+                        else:
+                            result = "❌ 리스크가 높아 보여요. 충분한 조사가 필요해요."
+                        
+                        st.info(result)
+                        
+                        if "A타입" in user_type and amount > 0:
+                            st.subheader("💰 금액 배분 참고")
+                            if score >= 8:
+                                ratio = 0.3
+                            elif score >= 5:
+                                ratio = 0.2
+                            else:
+                                ratio = 0.1
+                            st.write(f"총 투자금액: {amount:,}원")
+                            st.write(f"권장 배분 비율: {int(ratio*100)}%")
+                            st.write(f"권장 투자금액: {int(amount * ratio):,}원")
+                        
+                        save_memo(
+                            title=f"{selected_stock[1]} 분석",
+                            content=f"총점: {score}/10 | 부채:{debt} | 배당:{dividend} | 성장:{growth} | 뉴스:{news} | 기간:{period} | 리스크:{risk}"
+                        )
+                        st.success("분석 결과가 메모에 저장됐어요!")
+
+
+        else:
+                st.info("먼저 관심 종목을 추가해주세요.")
+
+        # ── Tab 3: 메모 관리 ──
+        with tab3:
+            st.subheader("📝 저장된 분석 메모")
+            
+            memos = load_memos()
+            if memos:
+                # 종목별 필터
+                titles = ["전체"] + list(set([m[1] for m in memos]))
+                selected_title = st.selectbox("종목별 보기", titles)
                 
-                # 수정 가능한 텍스트 입력란
-                new_content = st.text_area(
-                    "내용",
-                    value=memo[2],
-                    key=f"memo_content_{memo[0]}",
-                    height=100
-                )
-                if new_content != memo[2]:
-                    if st.button("💾 저장", key=f"save_memo_{memo[0]}"):
-                        update_memo(memo[0], new_content)
-                        st.rerun()
-    else:
-        st.info("저장된 메모가 없어요.")
+                if selected_title != "전체":
+                    memos = [m for m in memos if m[1] == selected_title]
+                
+                for memo in memos:
+                    with st.container(border=True):
+                        col1, col2 = st.columns([8, 1])
+                        with col1:
+                            st.markdown(f"**{memo[1]}** — {memo[3]}")
+                        with col2:
+                            if st.button("🗑️", key=f"del_memo_{memo[0]}"):
+                                delete_memo(memo[0])
+                                st.rerun()
+                        
+                        # 수정 가능한 텍스트 입력란
+                        new_content = st.text_area(
+                            "내용",
+                            value=memo[2],
+                            key=f"memo_content_{memo[0]}",
+                            height=100
+                        )
+                        if new_content != memo[2]:
+                            if st.button("💾 저장", key=f"save_memo_{memo[0]}"):
+                                update_memo(memo[0], new_content)
+                                st.rerun()
+            else:
+                st.info("저장된 메모가 없어요.")
