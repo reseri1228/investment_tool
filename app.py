@@ -164,9 +164,8 @@ if stocks:
             if us_stocks:
                 st.markdown("### 🇺🇸 미국")
                 show_stocks(us_stocks)
-
-else:
-            st.info("아직 저장된 종목이 없어요.")
+            else:
+                st.info("아직 저장된 종목이 없어요.")
 
 # ── Tab 2: 종목 분석 ──
 with tab2:
@@ -318,33 +317,7 @@ with tab2:
                     period = "단기"
                     risk = "보통"
                     
-                    if "A타입" in user_type:
-                        st.markdown("""
-                        <style>
-                        input[aria-label="투자 금액 입력 (원)"] {
-                            text-align: right;
-                        }
-                        </style>
-                        """, unsafe_allow_html=True)
 
-                        if "amount_reset_count" not in st.session_state:
-                            st.session_state["amount_reset_count"] = 0
-
-                        amount_input = st.text_input(
-                            "투자 금액 입력 (원)",
-                            value="0",
-                            key=f"amount_input_{st.session_state['amount_reset_count']}"
-                        )
-                        amount_clean = amount_input.replace(",", "").strip()
-                        if amount_clean == "":
-                            amount = 0
-                        elif amount_clean.isdigit():
-                            amount = int(amount_clean)
-                        else:
-                            amount = 0
-                            st.warning("숫자만 입력해주세요")
-                        st.write(f"입력된 금액: {amount:,}원")
-                    
                     if st.button("판단 보조 결과 보기"):
                         score = 0
                         if debt == "낮음": score += 2
@@ -368,17 +341,7 @@ with tab2:
                         
                         st.info(result)
                         
-                        if "A타입" in user_type and amount > 0:
-                            st.subheader("💰 금액 배분 참고")
-                            if score >= 8:
-                                ratio = 0.3
-                            elif score >= 5:
-                                ratio = 0.2
-                            else:
-                                ratio = 0.1
-                            st.write(f"총 투자금액: {amount:,}원")
-                            st.write(f"권장 배분 비율: {int(ratio*100)}%")
-                            st.write(f"권장 투자금액: {int(amount * ratio):,}원")
+
                         
                         save_memo(
                             title=f"{selected_stock[1]} 분석",
