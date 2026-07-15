@@ -1,16 +1,75 @@
 import yfinance as yf
 import os
+import requests
 from dotenv import load_dotenv
 
 load_dotenv()
 
 PUBLIC_API_KEY = os.getenv("PUBLIC_DATA_API_KEY")
+KIS_APP_KEY = os.getenv("KIS_APP_KEY")
+KIS_APP_SECRET = os.getenv("KIS_APP_SECRET")
+KIS_BASE_URL = "https://openapi.koreainvestment.com:9443"
 
-def detect_market(ticker):
-    if ticker.endswith(".KS") or ticker.endswith(".KQ"):
-        return "국내"
-    return "미국"
+# ── 한투 API 토큰 발급 ──
+def get_kis_token():
+    url = f"{KIS_BASE_URL}/oauth2/tokenP"
+    headers = {"content-type": "application/json"}
+    body = {
+        "grant_type": "client_credentials",
+        "appkey": KIS_APP_KEY,
+        "appsecret": KIS_APP_SECRET
+    }
+    try:
+        res = requests.post(url, headers=headers, json=body)
+        return res.json().get("access_token", None)
+    except:
+        return None
 
+# ── 국내 주식 데이터 (한투 API) ──
+def get_kr_stock_data(ticker):
+    try:
+        # 티커에서 .KS, .KQ 제거해서 6자리 종목코드 추출
+        code = ticker.replace(".KS", "").replace(".KQ", "").zfill(6)
+
+        token = get_kis_token()
+        if not token:
+            return None
+
+        url = f"{KIS_BASE_URL}/uapi/domestic-stock/v1/quotations/inquire-price"
+        headers = {
+            "content-type": "application/json",
+            "authorization": f"Bearer {token}",
+            "appkey": KIS_APP_KEY,
+            "appsecret": KIS_APP_SECRET,
+            "tr_id": "FHKST01010100"
+        }
+        params = {
+            "FID_COND_MRKT_DIV_CODE": "J",
+            "FID_INPUT_ISCD": code
+        }
+
+        res = requests.get(url, headers=headers, params=params)
+        data = res.json().get("output", {})
+
+        if not data:
+            return None
+
+        price = data.get("stck_prpr", "N/A")
+        change_rate = data.get("prdy_ctrt", "N/A")
+        volume = data.get("acml_vol", "N/A")
+
+        return {
+            "ticker": ticker,
+            "name": data.get("hts_kor_isnm", "N/A"),
+            "price": price,
+            "change_percent": f"{change_rate}%",
+            "volume": volume,
+            "market_cap": "N/A"
+        }
+    except:
+        return None
+
+# ── 미국 주식 데이터 (yfinance) ──
 def get_stock_data(ticker):
     try:
         stock = yf.Ticker(ticker)
@@ -29,6 +88,7 @@ def get_stock_data(ticker):
             "volume": "N/A"
         }
 
+# ── 미국 주식 개요 (yfinance) ──
 def get_company_overview(ticker):
     try:
         stock = yf.Ticker(ticker)
@@ -43,6 +103,7 @@ def get_company_overview(ticker):
     except:
         return None
 
+# ── 차트 데이터 (yfinance, 국내/미국 공통) ──
 def get_chart_data(ticker):
     try:
         stock = yf.Ticker(ticker)
@@ -53,39 +114,64 @@ def get_chart_data(ticker):
     except:
         return [], []
 
-def get_kr_stock_data(ticker):
-    try:
-        # 이미 .KS나 .KQ가 붙어있으면 그대로 사용
-        if ticker.endswith(".KS") or ticker.endswith(".KQ"):
-            full_ticker = ticker
-        else:
-            full_ticker = ticker + ".KS"
-        
-        stock = yf.Ticker(full_ticker)
-        info = stock.info
-        if info.get("currentPrice"):
-            return {
-                "ticker": ticker,
-                "name": info.get("longName", "N/A"),
-                "price": str(info.get("currentPrice", "N/A")),
-                "change_percent": str(round(info.get("regularMarketChangePercent", 0), 2)) + "%",
-                "volume": str(info.get("regularMarketVolume", "N/A")),
-                "market_cap": str(info.get("marketCap", "N/A"))
-            }
-        stock = yf.Ticker(ticker + ".KQ")
-        info = stock.info
-        return {
-            "ticker": ticker,
-            "name": info.get("longName", "N/A"),
-            "price": str(info.get("currentPrice", "N/A")),
-            "change_percent": str(round(info.get("regularMarketChangePercent", 0) * 100, 2)) + "%",
-            "volume": str(info.get("regularMarketVolume", "N/A")),
-            "market_cap": str(info.get("marketCap", "N/A"))
-        }
-    except:
-        return None
+# ── 종목 검색 (yfinance) ──
+def detect_market(ticker):
+    if ticker.endswith(".KS") or ticker.endswith(".KQ"):
+        return "국내"
+    return "미국"
 
-def search_ticker(keyword):
+def is_korean(text):
+    return any('\uAC00' <= c <= '\uD7A3' for c in text)
+
+def search_kr_ticker(keyword):
+    try:
+        token = get_kis_token()
+        if not token:
+            return []
+
+        url = f"{KIS_BASE_URL}/uapi/domestic-stock/v1/quotations/search-stock-info"
+        headers = {
+            "content-type": "application/json",
+            "authorization": f"Bearer {token}",
+            "appkey": KIS_APP_KEY,
+            "appsecret": KIS_APP_SECRET,
+            "tr_id": "CTPF1002R"
+        }
+        params = {
+            "PRDT_TYPE_CD": "300",
+            "PDNO": keyword
+        }
+
+        res = requests.get(url, headers=headers, params=params)
+        data = res.json().get("output", [])
+
+        results = []
+        if isinstance(data, list):
+            for item in data:
+                code = item.get("pdno", "")
+                name = item.get("prdt_abrv_name", "N/A")
+                if code and name:
+                    results.append({
+                        "ticker": code + ".KS",
+                        "name": name,
+                        "region": "Korea",
+                        "market": "국내"
+                    })
+        elif isinstance(data, dict):
+            code = data.get("pdno", "")
+            name = data.get("prdt_abrv_name", "N/A")
+            if code and name:
+                results.append({
+                    "ticker": code + ".KS",
+                    "name": name,
+                    "region": "Korea",
+                    "market": "국내"
+                })
+        return results
+    except:
+        return []
+
+def search_us_ticker(keyword):
     try:
         search = yf.Search(keyword, max_results=10)
         results = []
@@ -103,3 +189,9 @@ def search_ticker(keyword):
         return results
     except:
         return []
+
+def search_ticker(keyword):
+    if is_korean(keyword):
+        return search_kr_ticker(keyword)
+    else:
+        return search_us_ticker(keyword)
