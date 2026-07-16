@@ -277,7 +277,31 @@ with tab2:
                 news = "중립"
                 period = "단기"
                 risk = "보통"
+            if "amount_reset_count" not in st.session_state:
+                st.session_state["amount_reset_count"] = 0
 
+            st.markdown("""
+<style>
+input[aria-label="투자 금액 입력 (원)"] {
+    text-align: right;
+}
+</style>
+""", unsafe_allow_html=True)
+
+            amount_input = st.text_input(
+                "투자 금액 입력 (원)",
+                value="0",
+                key=f"amount_input_{st.session_state['amount_reset_count']}"
+            )
+            amount_clean = amount_input.replace(",", "").strip()
+            if amount_clean == "":
+                amount = 0
+            elif amount_clean.isdigit():
+                amount = int(amount_clean)
+            else:
+                amount = 0
+                st.warning("숫자만 입력해주세요")
+            st.write(f"입력된 금액: {amount:,}원")
             if st.button("판단 보조 결과 보기"):
                 score = 0
                 if debt == "낮음": score += 2
