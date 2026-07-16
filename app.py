@@ -19,6 +19,8 @@ st.markdown("""
 # DB 초기화
 init_db()
 init_stock_db()
+from agents.stock_master_agent import auto_update_if_needed
+auto_update_if_needed()
 
 st.markdown("### 📈 투자 판단 보조 도구")
 st.markdown('<p class="sub-text">투자 초보자를 위한 종목 분석 도우미</p>', unsafe_allow_html=True)

@@ -124,52 +124,17 @@ def is_korean(text):
     return any('\uAC00' <= c <= '\uD7A3' for c in text)
 
 def search_kr_ticker(keyword):
-    try:
-        token = get_kis_token()
-        if not token:
-            return []
-
-        url = f"{KIS_BASE_URL}/uapi/domestic-stock/v1/quotations/search-stock-info"
-        headers = {
-            "content-type": "application/json",
-            "authorization": f"Bearer {token}",
-            "appkey": KIS_APP_KEY,
-            "appsecret": KIS_APP_SECRET,
-            "tr_id": "CTPF1002R"
-        }
-        params = {
-            "PRDT_TYPE_CD": "300",
-            "PDNO": keyword
-        }
-
-        res = requests.get(url, headers=headers, params=params)
-        data = res.json().get("output", [])
-
-        results = []
-        if isinstance(data, list):
-            for item in data:
-                code = item.get("pdno", "")
-                name = item.get("prdt_abrv_name", "N/A")
-                if code and name:
-                    results.append({
-                        "ticker": code + ".KS",
-                        "name": name,
-                        "region": "Korea",
-                        "market": "국내"
-                    })
-        elif isinstance(data, dict):
-            code = data.get("pdno", "")
-            name = data.get("prdt_abrv_name", "N/A")
-            if code and name:
-                results.append({
-                    "ticker": code + ".KS",
-                    "name": name,
-                    "region": "Korea",
-                    "market": "국내"
-                })
-        return results
-    except:
-        return []
+    from agents.stock_master_agent import search_stock_master
+    rows = search_stock_master(keyword)
+    results = []
+    for code, name, market, type_ in rows:
+        results.append({
+            "ticker": code + ".KS" if market == "KOSPI" else code + ".KQ",
+            "name": name,
+            "region": market,
+            "market": "국내"
+        })
+    return results
 
 def search_us_ticker(keyword):
     try:
