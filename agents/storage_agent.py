@@ -1,5 +1,6 @@
 import sqlite3
 import os
+from datetime import datetime, timedelta
 
 DB_PATH = "data/investment.db"
 
@@ -20,7 +21,8 @@ def init_db():
 def save_memo(title, content):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    cursor.execute("INSERT INTO memos (title, content) VALUES (?, ?)", (title, content))
+    kst_now = (datetime.utcnow() + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S")
+    cursor.execute("INSERT INTO memos (title, content, created_at) VALUES (?, ?, ?)", (title, content, kst_now))
     conn.commit()
     conn.close()
 

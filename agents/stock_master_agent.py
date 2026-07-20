@@ -48,14 +48,18 @@ def parse_mst_file(data: bytes, market: str):
         for line in f:
             if len(line) < 9:
                 continue
+            import re
             code = line[0:9].strip()
-            # 종목명은 고정 오프셋에 위치
-            name = line[21:].strip()
-            # 종목명만 추출 (첫 번째 공백 이후 잘라냄)
-            if name:
-                name = name.split()[0] if name.split() else name
+            rest = line[21:]
+            # 종목명: 공백 2개 이상 나오기 전까지
+            m = re.match(r"^(.*?)\s{2,}", rest)
+            name = m.group(1).strip() if m else rest.strip()
+            after_name = rest[m.end():].strip() if m else ""
+            # 타입코드: 이름 뒤 나머지 부분 맨 앞 2글자로 판별
+            prefix = after_name[:2]
+            stock_type = prefix if prefix in ("EF", "ST", "EN") else "STOCK"
             if code and name:
-                results.append((code, name, market, "STOCK", str(date.today())))
+                results.append((code, name, market, stock_type, str(date.today())))
     except Exception as e:
         print(f"파싱 오류: {e}")
     return results
