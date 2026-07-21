@@ -69,12 +69,29 @@ with tab1:
     if "status_filter" not in st.session_state:
         st.session_state.status_filter = "전체"
 
+    st.markdown("""
+    <span class="filter-marker"></span>
+    <style>
+    .filter-marker + div[data-testid="stHorizontalBlock"] button {
+        border: none !important;
+        background: transparent !important;
+        box-shadow: none !important;
+        color: #444 !important;
+        font-size: 0.95rem !important;
+        padding: 4px 10px !important;
+    }
+    .filter-marker + div[data-testid="stHorizontalBlock"] button:hover {
+        color: #E74C3C !important;
+        background: transparent !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
     cols = st.columns(len(filter_options) + 3)
     for i, option in enumerate(filter_options):
         with cols[i]:
             is_selected = st.session_state.status_filter == option
             if is_selected:
-                st.markdown(f'<div style="background:#9B59B6;color:white;border-radius:20px;padding:5px 16px;font-size:0.9rem;font-weight:600;text-align:center;margin-bottom:8px;">{option}</div>', unsafe_allow_html=True)
+                st.markdown(f'<div style="color:#222;border-bottom:3px solid #E74C3C;padding:4px 10px 6px 10px;font-size:1.05rem;font-weight:700;text-align:center;margin-bottom:8px;">{option}</div>', unsafe_allow_html=True)
             else:
                 if st.button(option, key=f"filter_{option}"):
                     st.session_state.status_filter = option
@@ -256,6 +273,7 @@ with tab2:
                 with st.container(border=True):
                     dividend = st.radio(div_label, ["있음", "없음"],
                         index=["있음", "없음"].index(auto_dividend))
+                    st.markdown("<div style='height:22px'></div>", unsafe_allow_html=True)
                 with st.container(border=True):
                     growth = st.radio("업종 성장성", ["낮음", "보통", "높음"])
             with col2:
@@ -267,59 +285,59 @@ with tab2:
                     risk = st.radio("리스크 수준", ["낮음", "보통", "높음"])
 
 
-                st.markdown("""
+        st.markdown("""
     <style>
     input[aria-label="투자 금액 입력 (원)"] {
-        text-align: right;
+text-align: right;
     }
     </style>
     """, unsafe_allow_html=True)
 
-                if "amount_reset_count" not in st.session_state:
-                    st.session_state["amount_reset_count"] = 0
+        if "amount_reset_count" not in st.session_state:
+            st.session_state["amount_reset_count"] = 0
 
-                amount_input = st.text_input(
-                    "투자 금액 입력 (원)",
-                    value="0",
-                    key=f"amount_input_{st.session_state['amount_reset_count']}"
-                )
-                amount_clean = amount_input.replace(",", "").strip()
-                if amount_clean == "":
-                    amount = 0
-                elif amount_clean.isdigit():
-                    amount = int(amount_clean)
-                else:
-                    amount = 0
-                    st.warning("숫자만 입력해주세요")
-                st.write(f"입력된 금액: {amount:,}원")
-                if st.button("판단 보조 결과 보기"):
-                    score = 0
-                    if debt == "낮음": score += 2
-                    elif debt == "보통": score += 1
-                    if dividend == "있음": score += 1
-                    if growth == "높음": score += 2
-                    elif growth == "보통": score += 1
-                    if news == "긍정": score += 2
-                    elif news == "중립": score += 1
-                    if period == "장기": score += 1
-                    if risk == "낮음": score += 1
+        amount_input = st.text_input(
+            "투자 금액 입력 (원)",
+            value="0",
+            key=f"amount_input_{st.session_state['amount_reset_count']}"
+        )
+        amount_clean = amount_input.replace(",", "").strip()
+        if amount_clean == "":
+            amount = 0
+        elif amount_clean.isdigit():
+            amount = int(amount_clean)
+        else:
+            amount = 0
+            st.warning("숫자만 입력해주세요")
+        st.write(f"입력된 금액: {amount:,}원")
+        if st.button("판단 보조 결과 보기"):
+            score = 0
+            if debt == "낮음": score += 2
+            elif debt == "보통": score += 1
+            if dividend == "있음": score += 1
+            if growth == "높음": score += 2
+            elif growth == "보통": score += 1
+            if news == "긍정": score += 2
+            elif news == "중립": score += 1
+            if period == "장기": score += 1
+            if risk == "낮음": score += 1
 
-                    st.subheader(f"📊 총점: {score} / 10")
+            st.subheader(f"📊 총점: {score} / 10")
 
-                    if score >= 8:
-                        result = "✅ 긍정적인 종목이에요. 추가 검토 후 투자를 고려해보세요."
-                    elif score >= 5:
-                        result = "⚠️ 보통 수준이에요. 신중하게 검토하세요."
-                    else:
-                        result = "❌ 리스크가 높아 보여요. 충분한 조사가 필요해요."
+            if score >= 8:
+                result = "✅ 긍정적인 종목이에요. 추가 검토 후 투자를 고려해보세요."
+            elif score >= 5:
+                result = "⚠️ 보통 수준이에요. 신중하게 검토하세요."
+            else:
+                result = "❌ 리스크가 높아 보여요. 충분한 조사가 필요해요."
 
-                    st.info(result)
+            st.info(result)
 
-                    save_memo(
-                        title=f"{selected_stock[1]} 분석",
-                        content=f"총점: {score}/10 | 부채:{debt} | 배당:{dividend} | 성장:{growth} | 뉴스:{news} | 기간:{period} | 리스크:{risk}"
-                    )
-                    st.success("분석 결과가 메모에 저장됐어요!")
+            save_memo(
+                title=f"{selected_stock[1]} 분석",
+                content=f"총점: {score}/10 | 부채:{debt} | 배당:{dividend} | 성장:{growth} | 뉴스:{news} | 기간:{period} | 리스크:{risk}"
+            )
+            st.success("분석 결과가 메모에 저장됐어요!")
 
     else:
         st.info("먼저 관심 종목을 추가해주세요.")
@@ -331,12 +349,16 @@ with tab3:
     memos = load_memos()
     if memos:
         titles = ["전체"] + list(set([m[1] for m in memos]))
-        selected_title = st.selectbox("종목별 보기", titles)
+        col_a, col_b = st.columns([3, 1])
+        with col_a:
+            selected_title = st.selectbox("종목", titles)
+        with col_b:
+            if selected_title == "전체":
+                sort_order = st.selectbox("정렬", ["최신순", "오래된순"])
 
         if selected_title != "전체":
             memos = [m for m in memos if m[1] == selected_title]
         else:
-            sort_order = st.selectbox("정렬 순서", ["최신순", "오래된순"])
             if sort_order == "오래된순":
                 memos = list(reversed(memos))
 
