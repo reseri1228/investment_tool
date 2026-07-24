@@ -104,10 +104,10 @@ def get_company_overview(ticker):
         return None
 
 # ── 차트 데이터 (yfinance, 국내/미국 공통) ──
-def get_chart_data(ticker):
+def get_chart_data(ticker, period="6mo"):
     try:
         stock = yf.Ticker(ticker)
-        hist = stock.history(period="6mo")
+        hist = stock.history(period=period)
         dates = hist.index.strftime("%Y-%m-%d").tolist()
         closes = hist["Close"].tolist()
         return dates, closes

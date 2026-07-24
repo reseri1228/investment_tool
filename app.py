@@ -210,8 +210,13 @@ with tab2:
                 st.metric("거래량", f"{volume} 주")
 
             st.divider()
-            st.subheader("📈 주가 차트 (최근 100일)")
-            dates, closes = get_chart_data(selected_stock[2])
+            chart_col1, chart_col2 = st.columns([4, 1])
+            with chart_col1:
+                st.subheader("📈 주가 차트")
+            with chart_col2:
+                period_map = {"1주": "1wk", "1개월": "1mo", "3개월": "3mo", "6개월": "6mo", "1년": "1y", "전체": "max"}
+                period_label = st.selectbox("기간", list(period_map.keys()), index=3, label_visibility="collapsed")
+            dates, closes = get_chart_data(selected_stock[2], period=period_map[period_label])
             if dates and closes:
                 fig = go.Figure()
                 fig.add_trace(go.Scatter(
