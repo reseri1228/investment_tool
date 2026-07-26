@@ -9,6 +9,7 @@ st.markdown("""
     <style>
     @import url('https://cdn.jsdelivr.net/gh/sunn-us/SUIT/fonts/static/woff2/SUIT.css');
     * { font-family: 'SUIT', sans-serif !important; }
+    [data-testid="stIconMaterial"] { font-family: 'Material Symbols Rounded' !important; }
     .main-title { font-size: 2.5rem; font-weight: 800; background: linear-gradient(90deg, #00c4ff, #0072ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 0.5rem; }
     .sub-text { color: #888; font-size: 0.9rem; margin-bottom: 2rem; }
     .stButton > button { border-radius: 20px; font-weight: 600; transition: 0.2s; padding: 0.3rem 0.8rem; font-size: 0.85rem; width: auto !important; border: none !important; background: none !important; color: #555 !important; }
@@ -288,6 +289,19 @@ with tab2:
                     period = st.radio("내 목표 투자기간", ["단기", "중기", "장기"])
                 with st.container(border=True):
                     risk = st.radio("리스크 수준", ["낮음", "보통", "높음"])
+
+            st.divider()
+            st.subheader("📰 관련 뉴스")
+            from agents.research_agent import get_stock_news
+            news_list = get_stock_news(selected_stock[1], display=5)
+            if news_list:
+                for n in news_list:
+                    with st.expander(n["title"]):
+                        st.write(n["description"])
+                        st.markdown(f"[원문 보기]({n['link']})")
+            else:
+                st.write("관련 뉴스를 찾을 수 없습니다.")
+
 
 
         st.markdown("""

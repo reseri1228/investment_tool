@@ -9,6 +9,8 @@ PUBLIC_API_KEY = os.getenv("PUBLIC_DATA_API_KEY")
 KIS_APP_KEY = os.getenv("KIS_APP_KEY")
 KIS_APP_SECRET = os.getenv("KIS_APP_SECRET")
 KIS_BASE_URL = "https://openapi.koreainvestment.com:9443"
+NAVER_CLIENT_ID = os.getenv("NAVER_CLIENT_ID")
+NAVER_CLIENT_SECRET = os.getenv("NAVER_CLIENT_SECRET")
 
 # ── 한투 API 토큰 발급 ──
 def get_kis_token():
@@ -113,6 +115,36 @@ def get_chart_data(ticker, period="6mo"):
         return dates, closes
     except:
         return [], []
+
+# ── 종목 뉴스 검색 (네이버 뉴스 API) ──
+def get_stock_news(query, display=3):
+    try:
+        url = "https://openapi.naver.com/v1/search/news.json"
+        headers = {
+            "X-Naver-Client-Id": NAVER_CLIENT_ID,
+            "X-Naver-Client-Secret": NAVER_CLIENT_SECRET
+        }
+        params = {
+            "query": query,
+            "display": display,
+            "sort": "date"
+        }
+        res = requests.get(url, headers=headers, params=params)
+        items = res.json().get("items", [])
+
+        news_list = []
+        for item in items:
+            title = item.get("title", "").replace("<b>", "").replace("</b>", "").replace("&quot;", chr(34))
+            description = item.get("description", "").replace("<b>", "").replace("</b>", "").replace("&quot;", chr(34))
+            news_list.append({
+                "title": title,
+                "description": description,
+                "link": item.get("link", ""),
+                "pubDate": item.get("pubDate", "")
+            })
+        return news_list
+    except:
+        return []
 
 # ── 종목 검색 (yfinance) ──
 def detect_market(ticker):
