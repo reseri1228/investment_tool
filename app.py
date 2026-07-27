@@ -201,7 +201,8 @@ with tab2:
                 price = quote['price']
                 if price != "N/A":
                     price = f"{int(float(price)):,}"
-                st.metric("현재 주가", f"{price} {currency}")
+                price_display = f"${price}" if currency == "$" else f"{price}{currency}"
+                st.metric("현재 주가", price_display)
             with col2:
                 st.metric("등락률 (전일 대비)", quote['change_percent'])
             with col3:
