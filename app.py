@@ -7,8 +7,14 @@ from agents.research_agent import get_stock_data, get_company_overview, get_char
 # 스타일 설정
 st.markdown("""
     <style>
-    @import url('https://cdn.jsdelivr.net/gh/sunn-us/SUIT/fonts/static/woff2/SUIT.css');
-    * { font-family: 'SUIT', sans-serif !important; }
+    @font-face {
+        font-family: 'OngleipParkDahyeon';
+        src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2411-3@1.0/Ownglyph_ParkDaHyun.woff2') format('woff2');
+        font-weight: normal;
+        font-style: normal;
+    }
+    * { font-family: 'OngleipParkDahyeon', sans-serif !important; }
+    body, p, div, span, label, input, textarea { font-size: 21px !important; }
     [data-testid="stIconMaterial"] { font-family: 'Material Symbols Rounded' !important; }
     .main-title { font-size: 2.5rem; font-weight: 800; background: linear-gradient(90deg, #00c4ff, #0072ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 0.5rem; }
     .sub-text { color: #888; font-size: 0.9rem; margin-bottom: 2rem; }
