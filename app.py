@@ -7,13 +7,15 @@ from agents.research_agent import get_stock_data, get_company_overview, get_char
 # 스타일 설정
 st.markdown("""
     <style>
+    @import url("https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css");
+    div[data-testid="InputInstructions"] { display: none !important; }
     @font-face {
-        font-family: 'OngleipParkDahyeon';
-        src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2411-3@1.0/Ownglyph_ParkDaHyun.woff2') format('woff2');
+        font-family: 'Cafe24AnemoneAir';
+        src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2202@1.0/Cafe24Ohsquareair.woff') format('woff');
         font-weight: normal;
         font-style: normal;
     }
-    * { font-family: 'OngleipParkDahyeon', sans-serif !important; }
+    * { font-family: 'Cafe24AnemoneAir', sans-serif !important; }
     body, p, div, span, label, input, textarea { font-size: 21px !important; }
     [data-testid="stIconMaterial"] { font-family: 'Material Symbols Rounded' !important; }
     .main-title { font-size: 2.5rem; font-weight: 800; background: linear-gradient(90deg, #00c4ff, #0072ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 0.5rem; }
@@ -29,7 +31,7 @@ init_stock_db()
 from agents.stock_master_agent import auto_update_if_needed
 auto_update_if_needed()
 
-st.markdown("### 📈 투자 판단 보조 도구")
+st.markdown("### <span style=\"display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:#FAECE7;margin-right:6px;\"><i class=\"ti ti-trending-up\" style=\"font-size:14px;color:#993C1D;\"></i></span> Byme", unsafe_allow_html=True)
 st.markdown('<p class="sub-text">투자 초보자를 위한 종목 분석 도우미</p>', unsafe_allow_html=True)
 
 # session_state 초기화
@@ -41,7 +43,7 @@ if "selected_stock" not in st.session_state:
     st.session_state.selected_stock = None
 
 # 탭 구성
-tab1, tab2, tab3 = st.tabs(["관심 종목 관리", "종목 분석", "메모 관리"])
+tab1, tab2, tab3 = st.tabs(["관심종목", "종목분석", "메모"])
 
 # ── Tab 1: 관심 종목 관리 ──
 with tab1:
@@ -69,7 +71,7 @@ with tab1:
             st.warning("검색 결과가 없어요. 영어로 검색해보세요!")
 
     st.divider()
-    st.subheader("📌 저장된 종목 목록")
+    st.markdown("### <span style=\"display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:#FBEAF0;margin-right:6px;\"><i class=\"ti ti-pin\" style=\"font-size:14px;color:#993556;\"></i></span> 저장된 종목 목록", unsafe_allow_html=True)
 
     # 필터 버튼
     filter_options = ["전체", "관심", "관찰", "보류", "제외"]
@@ -158,7 +160,7 @@ with tab1:
 
 # ── Tab 2: 종목 분석 ──
 with tab2:
-    st.subheader("🔍 종목 분석")
+    st.markdown("### <span style=\"display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:#EEEDFE;margin-right:6px;\"><i class=\"ti ti-search\" style=\"font-size:14px;color:#3C3489;\"></i></span> 종목 분석", unsafe_allow_html=True)
 
     stocks = load_stocks()
 
@@ -200,7 +202,7 @@ with tab2:
             quote = st.session_state.quote
             selected_stock = st.session_state.selected_stock
 
-            st.subheader(f"📊 {selected_stock[1]} 기본 정보")
+            st.markdown(f"### <span style=\"display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:#FAEEDA;margin-right:6px;\"><i class=\"ti ti-chart-bar\" style=\"font-size:14px;color:#854F0B;\"></i></span> {selected_stock[1]} 기본 정보", unsafe_allow_html=True)
             col1, col2, col3 = st.columns(3)
             with col1:
                 currency = "원" if selected_stock[3] == "국내" else "$"
@@ -220,7 +222,7 @@ with tab2:
             st.divider()
             chart_col1, chart_col2 = st.columns([4, 1])
             with chart_col1:
-                st.subheader("📈 주가 차트")
+                st.markdown("### <span style=\"display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:#E1F5EE;margin-right:6px;\"><i class=\"ti ti-chart-line\" style=\"font-size:14px;color:#0F6E56;\"></i></span> 주가 차트", unsafe_allow_html=True)
             with chart_col2:
                 period_map = {"1주": "1wk", "1개월": "1mo", "3개월": "3mo", "6개월": "6mo", "1년": "1y", "전체": "max"}
                 period_label = st.selectbox("기간", list(period_map.keys()), index=3, label_visibility="collapsed")
@@ -286,7 +288,7 @@ with tab2:
                 with st.container(border=True):
                     dividend = st.radio(div_label, ["있음", "없음"],
                         index=["있음", "없음"].index(auto_dividend))
-                    st.markdown("<div style='height:22px'></div>", unsafe_allow_html=True)
+                    st.markdown("<div style='height:32px'></div>", unsafe_allow_html=True)
                 with st.container(border=True):
                     growth = st.radio("업종 성장성", ["낮음", "보통", "높음"])
             with col2:
@@ -298,7 +300,7 @@ with tab2:
                     risk = st.radio("리스크 수준", ["낮음", "보통", "높음"])
 
             st.divider()
-            st.subheader("📰 관련 뉴스")
+            st.markdown("### <span style=\"display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:#E6F1FB;margin-right:6px;\"><i class=\"ti ti-news\" style=\"font-size:14px;color:#185FA5;\"></i></span> 관련 뉴스", unsafe_allow_html=True)
             from agents.research_agent import get_stock_news
             news_list = get_stock_news(selected_stock[1], display=5)
             if news_list:
@@ -348,7 +350,7 @@ text-align: right;
             if period == "장기": score += 1
             if risk == "낮음": score += 1
 
-            st.subheader(f"📊 총점: {score} / 10")
+            st.markdown(f"### <span style=\"display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:#FAEEDA;margin-right:6px;\"><i class=\"ti ti-trophy\" style=\"font-size:14px;color:#854F0B;\"></i></span> 총점: {score} / 10", unsafe_allow_html=True)
 
             if score >= 8:
                 result = "✅ 긍정적인 종목이에요. 추가 검토 후 투자를 고려해보세요."
@@ -370,7 +372,7 @@ text-align: right;
 
 # ── Tab 3: 메모 관리 ──
 with tab3:
-    st.subheader("📝 저장된 분석 메모")
+    st.markdown("### <span style=\"display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:#FBEAF0;margin-right:6px;\"><i class=\"ti ti-notes\" style=\"font-size:14px;color:#993556;\"></i></span> 저장된 분석 메모", unsafe_allow_html=True)
 
     memos = load_memos()
     if memos:
@@ -398,15 +400,21 @@ with tab3:
                         delete_memo(memo[0])
                         st.rerun()
 
+                col_label, col_save = st.columns([3, 1])
+                with col_label:
+                    st.markdown("**내용**")
+                with col_save:
+                    save_clicked = st.button("💾 저장", key=f"save_memo_{memo[0]}")
+                _wrapped_lines = sum(max(1, -(-len(p)//40)) for p in memo[2].split(chr(10))) if memo[2] else 1
                 new_content = st.text_area(
                     "내용",
                     value=memo[2],
                     key=f"memo_content_{memo[0]}",
-                    height=100
+                    height=min(500, max(120, _wrapped_lines*30 + 40)),
+                    label_visibility="collapsed"
                 )
-                if new_content != memo[2]:
-                    if st.button("💾 저장", key=f"save_memo_{memo[0]}"):
-                        update_memo(memo[0], new_content)
-                        st.rerun()
+                if save_clicked:
+                    update_memo(memo[0], new_content)
+                    st.rerun()
     else:
         st.info("저장된 메모가 없어요.")
