@@ -18,6 +18,11 @@ st.markdown("""
     * { font-family: 'Cafe24AnemoneAir', sans-serif !important; }
     body, p, div, span, label, input, textarea { font-size: 21px !important; }
     [data-testid="stIconMaterial"] { font-family: 'Material Symbols Rounded' !important; }
+    [data-testid="stHorizontalBlock"] { align-items: stretch !important; }
+    [data-testid="stColumn"] { display: flex !important; }
+    [data-testid="stColumn"] > div { width: 100%; }
+    [data-testid="stColumn"] [data-testid="stVerticalBlockBorderWrapper"] { height: 100%; }
+    [data-testid="stColumn"] [data-testid="stVerticalBlock"] { height: 100%; }
     .main-title { font-size: 2.5rem; font-weight: 800; background: linear-gradient(90deg, #00c4ff, #0072ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 0.5rem; }
     .sub-text { color: #888; font-size: 0.9rem; margin-bottom: 2rem; }
     .stButton > button { border-radius: 20px; font-weight: 600; transition: 0.2s; padding: 0.3rem 0.8rem; font-size: 0.85rem; width: auto !important; border: none !important; background: none !important; color: #555 !important; }
@@ -120,9 +125,11 @@ with tab1:
         def show_stocks(stock_list):
             for stock in stock_list:
                 with st.container():
-                    col1, col2, col3, col4 = st.columns([4, 2, 3, 1])
+                    col1, col_market, col2, col3, col4 = st.columns([4, 1, 2, 3, 1])
                     with col1:
-                        st.write(f"**{stock[1]}** ({stock[2]}) — {stock[3]}")
+                        st.write(f"**{stock[1]}** ({stock[2]})")
+                    with col_market:
+                        st.markdown(f"<span style='white-space:nowrap'>{stock[3]}</span>", unsafe_allow_html=True)
                     with col2:
                         status = st.selectbox(
                             "상태",
@@ -135,8 +142,9 @@ with tab1:
                             st.rerun()
                     with col3:
                         tag = st.text_input(
-                            "태그 (예: AI, 반도체)",
+                            "태그",
                             value=stock[5] if stock[5] else "",
+                            placeholder="예: AI, 반도체",
                             key=f"tag_{stock[0]}"
                         )
                         if tag != stock[5]:
@@ -281,21 +289,29 @@ with tab2:
                 auto_dividend = "없음"
                 div_label = "배당 여부"
 
-            with col1:
+            row1_c1, row1_c2 = st.columns(2)
+            with row1_c1:
                 with st.container(border=True):
                     debt = st.radio(debt_label, ["낮음", "보통", "높음"],
                         index=["낮음", "보통", "높음"].index(auto_debt))
+            with row1_c2:
+                with st.container(border=True):
+                    news = st.radio("최근 뉴스", ["긍정", "중립", "부정"])
+
+            row2_c1, row2_c2 = st.columns(2)
+            with row2_c1:
                 with st.container(border=True):
                     dividend = st.radio(div_label, ["있음", "없음"],
                         index=["있음", "없음"].index(auto_dividend))
-                    st.markdown("<div style='height:32px'></div>", unsafe_allow_html=True)
-                with st.container(border=True):
-                    growth = st.radio("업종 성장성", ["낮음", "보통", "높음"])
-            with col2:
-                with st.container(border=True):
-                    news = st.radio("최근 뉴스", ["긍정", "중립", "부정"])
+            with row2_c2:
                 with st.container(border=True):
                     period = st.radio("내 목표 투자기간", ["단기", "중기", "장기"])
+
+            row3_c1, row3_c2 = st.columns(2)
+            with row3_c1:
+                with st.container(border=True):
+                    growth = st.radio("업종 성장성", ["낮음", "보통", "높음"])
+            with row3_c2:
                 with st.container(border=True):
                     risk = st.radio("리스크 수준", ["낮음", "보통", "높음"])
 
@@ -392,15 +408,15 @@ with tab3:
 
         for memo in memos:
             with st.container(border=True):
-                col1, col2 = st.columns([8, 1])
+                col1, col2 = st.columns([8, 1], vertical_alignment="center")
                 with col1:
                     st.markdown(f"**{memo[1]}** — {memo[3]}")
                 with col2:
                     if st.button("🗑️", key=f"del_memo_{memo[0]}"):
                         delete_memo(memo[0])
                         st.rerun()
-
-                col_label, col_save = st.columns([3, 1])
+                st.divider()
+                col_label, col_save = st.columns([3, 1], vertical_alignment="center")
                 with col_label:
                     st.markdown("**내용**")
                 with col_save:
