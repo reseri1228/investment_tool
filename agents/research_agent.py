@@ -1,4 +1,6 @@
 import yfinance as yf
+import time
+from datetime import datetime, timedelta
 import os
 import requests
 from dotenv import load_dotenv
@@ -13,7 +15,13 @@ NAVER_CLIENT_ID = os.getenv("NAVER_CLIENT_ID")
 NAVER_CLIENT_SECRET = os.getenv("NAVER_CLIENT_SECRET")
 
 # ── 한투 API 토큰 발급 ──
+_kis_token_cache = {"token": None, "expires_at": 0}
+
 def get_kis_token():
+    now = time.time()
+    if _kis_token_cache["token"] and now < _kis_token_cache["expires_at"]:
+        return _kis_token_cache["token"]
+
     url = f"{KIS_BASE_URL}/oauth2/tokenP"
     headers = {"content-type": "application/json"}
     body = {
@@ -23,11 +31,15 @@ def get_kis_token():
     }
     try:
         res = requests.post(url, headers=headers, json=body)
-        return res.json().get("access_token", None)
+        token = res.json().get("access_token", None)
+        if token:
+            _kis_token_cache["token"] = token
+            _kis_token_cache["expires_at"] = now + 60 * 60 * 23
+        return token
     except:
         return None
 
-# ── 국내 주식 데이터 (한투 API) ──
+
 def get_kr_stock_data(ticker):
     try:
         # 티커에서 .KS, .KQ 제거해서 6자리 종목코드 추출
@@ -72,6 +84,57 @@ def get_kr_stock_data(ticker):
         return None
 
 # ── 미국 주식 데이터 (yfinance) ──
+
+
+def get_kr_dividend_info(ticker):
+    """국내 종목의 최근 1년 배당금 합계를 조회 (예탁원정보 배당일정 API)"""
+    try:
+        code = ticker.replace(".KS", "").replace(".KQ", "").zfill(6)
+
+        token = get_kis_token()
+        if not token:
+            return None
+
+        today = datetime.today()
+        one_year_ago = today - timedelta(days=365)
+        f_dt = one_year_ago.strftime("%Y%m%d")
+        t_dt = today.strftime("%Y%m%d")
+
+        url = f"{KIS_BASE_URL}/uapi/domestic-stock/v1/ksdinfo/dividend"
+        headers = {
+            "content-type": "application/json",
+            "authorization": f"Bearer {token}",
+            "appkey": KIS_APP_KEY,
+            "appsecret": KIS_APP_SECRET,
+            "tr_id": "HHKDB669102C0",
+        }
+        params = {
+            "CTS": "",
+            "GB1": "0",
+            "F_DT": f_dt,
+            "T_DT": t_dt,
+            "SHT_CD": code,
+            "HIGH_GB": "",
+        }
+
+        res = requests.get(url, headers=headers, params=params)
+        data = res.json().get("output1", [])
+
+        if not data:
+            return {"annual_dividend_sum": 0, "count": 0}
+
+        total = 0
+        for row in data:
+            try:
+                total += int(row.get("per_sto_divi_amt", "0"))
+            except ValueError:
+                pass
+
+        return {"annual_dividend_sum": total, "count": len(data)}
+    except:
+        return None
+
+
 def get_stock_data(ticker):
     try:
         stock = yf.Ticker(ticker)
@@ -100,6 +163,7 @@ def get_company_overview(ticker):
             "52_week_high": info.get("fiftyTwoWeekHigh", "N/A"),
             "52_week_low": info.get("fiftyTwoWeekLow", "N/A"),
             "dividend": info.get("dividendYield", "N/A"),
+            "dividend_rate": info.get("dividendRate", "N/A"),
             "debt_to_equity": info.get("debtToEquity", "N/A")
         }
     except:

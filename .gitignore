@@ -1,4 +1,26 @@
-.env
-venv/
+# 백업 파일
+*.bak
+*.bak_*
+
+# 디버깅/실험용 임시 스크립트
+check_*.py
+fix_*.py
+add_*.py
+apply_*.py
+revert_*.py
+split_*.py
+test_*.py
+remove_blank_line.py
+update_db.py
+final_memo_fix.py
+
+# 루트에 있는 임시 DB (진짜 DB는 data/investment.db)
+/investment.db
+
+# 파이썬 캐시
 __pycache__/
 *.pyc
+
+# 가상환경
+venv/
+data/investment.db
