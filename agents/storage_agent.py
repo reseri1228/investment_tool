@@ -3,6 +3,7 @@ import os
 from datetime import datetime, timedelta
 
 DB_PATH = "data/investment.db"
+os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
 
 def init_db():
     conn = sqlite3.connect(DB_PATH)

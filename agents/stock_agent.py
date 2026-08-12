@@ -1,6 +1,8 @@
 import sqlite3
+import os
 
 DB_PATH = "data/investment.db"
+os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
 
 def init_stock_db():
     conn = sqlite3.connect(DB_PATH)
