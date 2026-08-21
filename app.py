@@ -239,6 +239,11 @@ else:
                 col1, col2, col3 = st.columns(3)
                 with col1:
                     currency = "원" if selected_stock[3] == "국내" else "$"
+                    raw_price = None
+                    try:
+                        raw_price = float(quote["price"])
+                    except (TypeError, ValueError, KeyError):
+                        raw_price = None
                     price = quote['price']
                     if price != "N/A":
                         price = f"{int(float(price)):,}"
@@ -322,7 +327,11 @@ else:
                     if kr_div and kr_div["annual_dividend_sum"] > 0:
                         auto_dividend = "있음"
                         div_rate = kr_div["annual_dividend_sum"]
-                        div_label = "배당 여부"
+                        if raw_price and raw_price > 0:
+                            kr_div_yield = (kr_div["annual_dividend_sum"] / raw_price) * 100
+                            div_label = f"배당 여부 (수익률: {kr_div_yield:.2f}%)"
+                        else:
+                            div_label = "배당 여부"
                         div_unit = "원"
                     else:
                         auto_dividend = "없음"
@@ -351,6 +360,8 @@ else:
                                 st.caption(f"주당 연배당: {div_rate:,}원")
                             else:
                                 st.caption(f"주당 연배당: ${div_rate:.2f}")
+                        if dividend == "없음":
+                            st.caption("주당 연배당: -")
                 with row2_c2:
                     with st.container(border=True):
                         period = st.radio("내 목표 투자기간", ["단기", "중기", "장기"])
